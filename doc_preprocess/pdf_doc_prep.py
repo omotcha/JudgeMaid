@@ -12,7 +12,7 @@ replacement = {
 
 def remove_splitters(splitters: list, fin: str or os.PathLike, fout: str or os.PathLike) -> None:
     """
-
+    remove the splitters
     :param splitters: list of splitter(e.g. "\n")
     :param fin: input file
     :param fout: output file
