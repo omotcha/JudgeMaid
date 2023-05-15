@@ -27,7 +27,7 @@ class EmbeddingUtil:
         :param fin:
         :return:
         """
-        documents = TextLoader(os.path.join(target_dir, fin)).load()
+        documents = TextLoader(os.path.join(target_dir, fin), encoding="utf-8").load()
         text_splitter = CharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         docs = text_splitter.split_documents(documents)
         self._db = FAISS.from_documents(docs, self._embeddings)
@@ -41,4 +41,6 @@ class EmbeddingUtil:
 
 if __name__ == '__main__':
     util = EmbeddingUtil()
+    util.load_txt("01_split.txt")
     print(util.similar_search("公司名称是什么？"))
+    print(util.similar_search("产品名称是什么？"))
