@@ -1,6 +1,6 @@
-# the embedding model option, "openai"/"text2vec-cn"
+# the embedding model option, "openai"/"text2vec-cn"/"sentence-transformers"
 # currently for test, open "openai" works
-embedding_option = "openai"
+embedding_option = "text2vec-cn"
 
 # text splitter options
 chunk_size = 1000
