@@ -1,5 +1,6 @@
 # tmp folder
 /tmp/
 
-# playground data folders
+# playground/playground data folders
 /playground/01_embedding_based_classification/data/
+/playground/02_pdf_content_extraction/

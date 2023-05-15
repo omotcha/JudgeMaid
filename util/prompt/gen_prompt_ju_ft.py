@@ -114,7 +114,7 @@ def save_jsonl():
             result.append(tmp_rp)
 
     timestamp = time.time()
-    with open(os.path.join(target_dir, f"{timestamp}.jsonl", ), 'a', encoding='utf-8') as f:
+    with open(os.path.join(target_dir, f"{timestamp}.jsonl"), 'a', encoding='utf-8') as f:
         for rp in result:
             s = json.dumps(rp, ensure_ascii=False)
             f.write(f"{s}\n")
