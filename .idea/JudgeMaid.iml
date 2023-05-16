@@ -5,6 +5,8 @@
       <excludeFolder url="file://$MODULE_DIR$/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/playground/01_embedding_based_classification/data" />
       <excludeFolder url="file://$MODULE_DIR$/playground/02_pdf_content_extraction/data" />
+      <excludeFolder url="file://$MODULE_DIR$/playground/02_pdf_content_extraction" />
+      <excludeFolder url="file://$MODULE_DIR$/playground/03_chat_pdf" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

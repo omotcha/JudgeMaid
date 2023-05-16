@@ -2,7 +2,7 @@ import os
 
 import torch
 from transformers import AutoTokenizer, AutoModel
-from langchain.document_loaders import TextLoader
+from langchain.document_loaders import TextLoader, PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
@@ -51,10 +51,20 @@ class EmbeddingUtil:
         docs = text_splitter.split_documents(documents)
         self._db = FAISS.from_documents(docs, self._embeddings)
 
-    def similar_search(self, query: str) -> list or None:
+    def load_pdf(self, fin: str or os.PathLike):
+        """
+        load a pdf file as knowledge base
+        :param fin:
+        :return:
+        """
+        documents = PyPDFLoader(os.path.join(target_dir, fin))
+        docs = documents.load_and_split()
+        self._db = FAISS.from_documents(docs, self._embeddings)
+
+    def similarity_search(self, query: str) -> list or None:
         if self._db is None:
             return None
-        docs = self._db.similarity_search(query)
+        docs = self._db.similarity_search(query, k=top_k)
         return docs
 
     def embed_query(self, query):
@@ -72,7 +82,7 @@ class EmbeddingUtil:
 
 if __name__ == '__main__':
     util = EmbeddingUtil()
-    util.load_txt("01_split.txt")
-    print(util.similar_search("公司名称是什么？"))
-    print(util.similar_search("产品名称是什么？"))
+    # util.load_txt("01_split.txt")
+    util.load_pdf("GPT2.pdf")
+    print(util.similarity_search("what is the conclusion of this paper?"))
     # print(util.embed_query("公司名称是什么？"))
