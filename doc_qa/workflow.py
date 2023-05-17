@@ -1,29 +1,29 @@
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+from config.doc_qa_config import zh_prompts
 
-prompt_template = """下面文字介绍了某公司及其产品，请根据要求从中提取关键信息，并用json的形式来描述。
-    若无法从中得到答案，请说"没有提供足够的相关信息"，不允许在答案中添加编造成分。答案请使用中文。
 
-    公司及产品介绍:
-    {context}
-
-    关键信息：
-    公司名称，公司描述，产品名称(如果有多个产品，请列举)，产品关键词
+def entity_recognition(context: str, llm_option: str, temperature: float, max_tokens: int) -> tuple[str, str]:
     """
 
-
-def keyword_extraction(context: str, llm_option: str, temperature: float) -> tuple[str, str]:
+    :param context:
+    :param llm_option:
+    :param temperature:
+    :param max_tokens:
+    :return:
+    """
+    from prompt_templates.entity_recognition import prompt_entity_recognition_en, prompt_entity_recognition_zh
     if llm_option == "openai":
-        llm = OpenAI(temperature=temperature)
+        llm = OpenAI(temperature=temperature, max_tokens=max_tokens)
     else:
         # todo: support more LLMs
         return "", "Currently only openai model supported"
 
     prompt = PromptTemplate(
-        template=prompt_template,
+        template=prompt_entity_recognition_zh if zh_prompts else prompt_entity_recognition_en,
         input_variables=["context"]
     )
     chain = LLMChain(llm=llm, prompt=prompt)
     result = chain.run(context)
-    return result, "Success"
+    return result, "success"

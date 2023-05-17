@@ -23,3 +23,6 @@ src_fmt = "text"
 # task option
 task_options = ["keyword extraction"]
 task_option = "keyword extraction"
+
+# prompt language, default True for Chinese prompt template, false for English prompt template
+zh_prompts = False
