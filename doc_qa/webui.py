@@ -36,18 +36,30 @@ def raw_process_workflow(
     if max_tokens is None:
         return "", "Error: No max tokens indicated"
 
-    result = ""
-    dev = ""
+    all_tasks = ["entity recognition", "keyword extraction"]
+    result = {}
+    dev = {}
+
     # workflow: currently only support sync workflow
     # todo: async workflow
     if "keyword extraction" in workflow:
-        pass
+        result_delta, dev_delta = keyword_extraction(
+            context=query, llm_option=llm, temperature=temperature, max_tokens=-1)
+        result["keyword extraction"] = result_delta
+        dev["keyword extraction"] = dev_delta
     if "entity recognition" in workflow:
-        result_delta, dev_delta = entity_recognition(context=query, llm_option=llm, temperature=temperature, max_tokens=-1)
-        if dev_delta == "success":
-            result += result_delta + "\n"
-        dev += dev_delta + "\n"
-    return result, dev
+        result_delta, dev_delta = entity_recognition(
+            context=query, llm_option=llm, temperature=temperature, max_tokens=-1)
+        result["entity recognition"] = result_delta
+        dev["entity recognition"] = dev_delta
+
+    result_text = ""
+    dev_text = ""
+    for task in all_tasks:
+        if task in dev.keys() and dev[task] == "success":
+            result_text += result[task] + "\n"
+            dev_text += dev[task] + "\n"
+    return result_text, dev_text
 
 
 def change_embedding_model(embedding_model):

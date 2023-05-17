@@ -35,4 +35,4 @@ block_css = """
 latent_progress = True
 
 # display the result in json/markdown
-display_format = "json"
+display_format = "markdown"
