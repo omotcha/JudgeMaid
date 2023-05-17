@@ -8,7 +8,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.embeddings.huggingface_hub import HuggingFaceHubEmbeddings
 from langchain.vectorstores import FAISS
-from config.doc_qa_config import *
+from config.doc_qa_config import embedding_option, chunk_overlap, chunk_size, top_k
 from config.common import tmp_dir
 
 target_dir = os.path.join(tmp_dir, "txt_pool")
@@ -21,11 +21,18 @@ def mean_pooling(model_output, attention_mask):
 
 
 class EmbeddingUtil:
-    def __init__(self):
+    def __init__(self, opt: str or None):
+        """
+        initialize an EmbeddingUtil
+        :param opt: embedding option overriden
+        """
+        self._embedding_option = None
+        _embedding_option = embedding_option if opt is None else opt
+
         # init embedding option
-        if embedding_option == "openai":
+        if _embedding_option == "openai":
             self._embeddings = OpenAIEmbeddings()
-        elif embedding_option == "text2vec-cn":
+        elif _embedding_option == "text2vec-cn":
             self._tokenizer = AutoTokenizer.from_pretrained("GanymedeNil/text2vec-large-chinese")
             self._model = AutoModel.from_pretrained("GanymedeNil/text2vec-large-chinese")
             self._embeddings = HuggingFaceEmbeddings(
@@ -51,15 +58,19 @@ class EmbeddingUtil:
         docs = text_splitter.split_documents(documents)
         self._db = FAISS.from_documents(docs, self._embeddings)
 
-    def load_pdf(self, fin: str or os.PathLike):
+    def load_pdf(self, fin: str or os.PathLike)->bool:
         """
         load a pdf file as knowledge base
         :param fin:
         :return:
         """
-        documents = PyPDFLoader(os.path.join(target_dir, fin))
-        docs = documents.load_and_split()
+        try:
+            documents = PyPDFLoader(os.path.join(target_dir, fin))
+            docs = documents.load_and_split()
+        except Exception:
+            return False
         self._db = FAISS.from_documents(docs, self._embeddings)
+        return True
 
     def similarity_search(self, query: str) -> list or None:
         if self._db is None:
@@ -68,9 +79,9 @@ class EmbeddingUtil:
         return docs
 
     def embed_query(self, query):
-        if embedding_option == "openai":
+        if self._embedding_option == "openai":
             return None
-        elif embedding_option == "text2vec-cn":
+        elif self._embedding_option == "text2vec-cn":
             encoded_input = self._tokenizer(query, padding=True, truncation=True, return_tensors='pt')
             with torch.no_grad():
                 model_output = self._model(**encoded_input)
@@ -81,7 +92,7 @@ class EmbeddingUtil:
 
 
 if __name__ == '__main__':
-    util = EmbeddingUtil()
+    util = EmbeddingUtil(opt=None)
     # util.load_txt("01_split.txt")
     util.load_pdf("GPT2.pdf")
     print(util.similarity_search("what is the conclusion of this paper?"))
