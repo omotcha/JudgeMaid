@@ -12,7 +12,7 @@ top_k = 3
 
 # the llm option, "openai"/"glm"/"llama"
 # currently only "openai" supported
-llm_options = ["openai"]
+llm_options = ["openai", "glm", "llama"]
 llm_option = "openai"
 
 # source file format option, "pdf"/"text"

@@ -1,4 +1,5 @@
 _version = "0.0.1"
+_type = "demo"
 
 # service configs
 
@@ -13,9 +14,9 @@ in_browser = False
 
 # change the webui title as you wish
 webui_title = f"""
-# DocQA demo WebUI
+# DocQA WebUI
 
-| version {_version} | 
+| version {_version} ({_type}) | 
 """
 
 # change the block css as you wish
