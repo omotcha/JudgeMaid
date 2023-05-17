@@ -18,4 +18,8 @@ llm_option = "openai"
 # source file format option, "pdf"/"text"
 # currently for test, try "text" first
 src_fmt_options = ["pdf", "text"]
-src_fmt = ["text"]
+src_fmt = "text"
+
+# task option
+task_options = ["keyword extraction"]
+task_option = "keyword extraction"
