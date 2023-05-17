@@ -10,6 +10,10 @@ def img_classifier(img):
     }
 
 
+def submit(query, task, embedding_model, llm):
+    return query, embedding_model + llm + task
+
+
 def change_embedding_model(embedding_model):
     return embedding_model
 
@@ -33,41 +37,35 @@ def launch():
         )
 
         with acrd_qa:
-            with gr.Tab("raw text"):
+            with gr.Tab("raw"):
                 with gr.Row():
                     with gr.Column(scale=8):
-                        query = gr.Textbox(
+                        query_raw = gr.Textbox(
                             label="query",
                             placeholder="Raw text supported, try markdown first:"
                         ).style(container=False)
                         btn_submit = gr.Button("Submit")
                     with gr.Column(scale=8):
-                        answer = gr.Textbox(
+                        answer_raw = gr.Textbox(
                             label="answer",
                             interactive=False
                         )
-                btn_submit.click(
-                    img_classifier,
-                    inputs=[query],
-                    outputs=[answer],
-                    show_progress=latent_progress
-                )
             with gr.Tab("pdf"):
                 with gr.Row():
                     with gr.Column(scale=8):
-                        query = gr.Textbox(
+                        query_pdf = gr.Textbox(
                             label="one-line query",
                             placeholder="One-line query supported, press enter to submit:"
                         ).style(container=False)
                     with gr.Column(scale=8):
-                        answer = gr.Textbox(
+                        answer_pdf = gr.Textbox(
                             label="answer",
                             interactive=False
                         )
-                query.submit(
+                query_pdf.submit(
                     img_classifier,
-                    [query],
-                    [answer]
+                    [query_pdf],
+                    [answer_pdf]
                 )
 
         with acrd_settings:
@@ -77,7 +75,9 @@ def launch():
                         with gr.Row():
                             select_embedding_model = gr.Radio(
                                 embedding_options,
-                                label="Supported Embedding Models"
+                                label="Supported Embedding Models",
+                                value=embedding_options[2],
+                                interactive=True
                             )
                             select_embedding_model.change(
                                 fn=change_embedding_model,
@@ -96,12 +96,17 @@ def launch():
                         with gr.Row():
                             select_base_task = gr.Radio(
                                 ["a", "b"],
-                                label="Base task"
+                                label="Base task",
+                                value="a",
+                                interactive=True
                             )
 
-        # with acrd_dev:
-        #     with gr.Row():
-        #         with gr.Column(scale=8):
+        btn_submit.click(
+            submit,
+            inputs=[query_raw, select_base_task, select_embedding_model, select_llm_model],
+            outputs=[answer_raw, simple_dev_text],
+            show_progress=latent_progress
+        )
 
     demo.queue(concurrency_count=concurrency_cnt).launch(
         server_name=server_name,
