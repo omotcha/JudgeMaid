@@ -33,3 +33,6 @@ block_css = """
 
 # show progress when having latencies
 latent_progress = True
+
+# display the result in json/markdown
+display_format = "json"

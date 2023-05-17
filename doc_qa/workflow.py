@@ -2,6 +2,7 @@ from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from config.doc_qa_config import zh_prompts
+from config.webui_config import display_format
 
 
 def entity_recognition(context: str, llm_option: str, temperature: float, max_tokens: int) -> tuple[str, str]:
@@ -22,8 +23,8 @@ def entity_recognition(context: str, llm_option: str, temperature: float, max_to
 
     prompt = PromptTemplate(
         template=prompt_entity_recognition_zh if zh_prompts else prompt_entity_recognition_en,
-        input_variables=["context"]
+        input_variables=["display_format", "context"]
     )
     chain = LLMChain(llm=llm, prompt=prompt)
-    result = chain.run(context)
+    result = chain.run({"display_format": display_format, "context": context})
     return result, "success"
