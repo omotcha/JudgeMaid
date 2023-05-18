@@ -1,7 +1,10 @@
 import gradio as gr
-from doc_qa.workflow import *
+from doc_qa.tasks import Tasks
 from config.webui_config import *
 from config.doc_qa_config import *
+from multiprocessing import Manager
+from threading import Thread
+import time
 
 
 def img_classifier(img):
@@ -24,6 +27,7 @@ def raw_process_workflow(
         temperature: float or None,
         max_tokens: int or None
 ):
+    start = time.time()
     # sanity checks
     if len(workflow) == 0:
         return "", "Error: Not a valid workflow."
@@ -36,25 +40,63 @@ def raw_process_workflow(
     if max_tokens is None:
         return "", "Error: No max tokens indicated"
 
-    all_tasks = ["entity recognition", "keyword extraction"]
-    result = {}
-    dev = {}
+    all_tasks = {
+        "entity recognition": "entity_recognition",
+        "keyword extraction": "keyword_extraction"}
 
-    # workflow: currently only support sync workflow
-    # todo: async workflow
-    if "keyword extraction" in workflow:
-        result_delta, dev_delta = keyword_extraction(
-            context=query, llm_option=llm, temperature=temperature, max_tokens=-1)
-        result["keyword extraction"] = result_delta
-        dev["keyword extraction"] = dev_delta
-    if "entity recognition" in workflow:
-        result_delta, dev_delta = entity_recognition(
-            context=query, llm_option=llm, temperature=temperature, max_tokens=-1)
-        result["entity recognition"] = result_delta
-        dev["entity recognition"] = dev_delta
+    if allow_multithreading:
+        manager = Manager()
+        result = manager.dict()
+        dev = manager.dict()
+    else:
+        result = {}
+        dev = {}
 
-    result_text = ""
-    dev_text = ""
+    threads = []
+    tasks = Tasks()
+
+    # workflow
+
+    if allow_multithreading:
+        for k in all_tasks.keys():
+            if k in workflow and hasattr(tasks, all_tasks[k]):
+                task = getattr(tasks, all_tasks[k])
+                threads.append(Thread(target=task, kwargs={
+                    "context": query,
+                    "llm_option": llm,
+                    "temperature": temperature,
+                    "max_tokens": -1,
+                    "result": result,
+                    "dev": dev
+                }))
+        for t in threads:
+            t.start()
+
+        for t in threads:
+            t.join()
+    else:
+        for k in all_tasks.keys():
+            if k in workflow and hasattr(tasks, all_tasks[k]):
+                getattr(tasks, all_tasks[k])(
+                    context=query,
+                    llm_option=llm,
+                    temperature=temperature,
+                    max_tokens=-1,
+                    result=result,
+                    dev=dev
+                )
+
+    # init header
+    if display_format == "markdown":
+        result_text = """
+        ### 基本信息
+        
+        """
+    else:
+        result_text = ""
+
+    time_count = time.time() - start
+    dev_text = f"Time count: {time_count}\n"
     for task in all_tasks:
         if task in dev.keys() and dev[task] == "success":
             result_text += result[task] + "\n"
@@ -85,13 +127,13 @@ def launch():
         with acrd_qa:
             with gr.Tab("raw"):
                 with gr.Row():
-                    with gr.Column(scale=8):
+                    with gr.Column(scale=6):
                         query_raw = gr.TextArea(
                             label="query",
                             placeholder="Raw text supported, try markdown first:"
                         ).style(container=False)
                         btn_submit = gr.Button("Submit")
-                    with gr.Column(scale=8):
+                    with gr.Column(scale=10):
                         if display_format == "markdown":
                             answer_raw = gr.Markdown(
                                 value=""

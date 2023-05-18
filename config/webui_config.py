@@ -36,3 +36,6 @@ latent_progress = True
 
 # display the result in json/markdown
 display_format = "markdown"
+
+# allow multithreading
+allow_multithreading = False
