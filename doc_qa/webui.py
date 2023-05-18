@@ -2,6 +2,7 @@ import gradio as gr
 from doc_qa.tasks import Tasks
 from config.webui_config import *
 from config.doc_qa_config import *
+from util.format.markdown import MarkdownUtil
 from multiprocessing import Manager
 from threading import Thread
 import time
@@ -87,11 +88,9 @@ def raw_process_workflow(
                 )
 
     # init header
+    md_helper = MarkdownUtil(None)
     if display_format == "markdown":
-        result_text = """
-        ### 基本信息
-        
-        """
+        result_text = md_helper.add_header(None)
     else:
         result_text = ""
 
@@ -101,6 +100,7 @@ def raw_process_workflow(
         if task in dev.keys() and dev[task] == "success":
             result_text += result[task] + "\n"
             dev_text += dev[task] + "\n"
+    dev_text = dev_text + "\n\n" + result_text
     return result_text, dev_text
 
 
@@ -130,7 +130,7 @@ def launch():
                     with gr.Column(scale=6):
                         query_raw = gr.TextArea(
                             label="query",
-                            placeholder="Raw text supported, try markdown first:"
+                            placeholder="Raw text supported, try format first:"
                         ).style(container=False)
                         btn_submit = gr.Button("Submit")
                     with gr.Column(scale=10):
