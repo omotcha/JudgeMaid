@@ -132,7 +132,7 @@ def launch():
                             label="query",
                             placeholder="Raw text supported, try format first:"
                         ).style(container=False)
-                        btn_submit = gr.Button("Submit")
+                        btn_submit_raw = gr.Button("Submit")
                     with gr.Column(scale=10):
                         if display_format == "markdown":
                             answer_raw = gr.Markdown(
@@ -160,11 +160,38 @@ def launch():
                     [query_pdf],
                     [answer_pdf]
                 )
-
+            with gr.Tab("yaml"):
+                with gr.Row():
+                    with gr.Column(scale=6):
+                        query_yaml = gr.TextArea(
+                            label="yaml query",
+                            placeholder="arbitrary yaml supported, try openapi first:"
+                        ).style(container=False)
+                        btn_submit_yaml = gr.Button("Submit")
+                    with gr.Column(scale=10):
+                        if display_format == "markdown":
+                            answer_yaml = gr.Markdown(
+                                value=""
+                            )
+                        else:
+                            answer_yaml = gr.TextArea(
+                                label="answer",
+                                interactive=False
+                            )
         with acrd_settings:
             with gr.Row():
                 with gr.Column(scale=6):
-                    with gr.Tab("Models & Workflow"):
+                    with gr.Tab("Workflow"):
+                        with gr.Column():
+                            gr.Markdown("**stage 1:**")
+                            tasks_stage_1 = gr.CheckboxGroup(
+                                choices=["keyword extraction", "entity recognition"],
+                                label="Tasks",
+                                interactive=True
+                            )
+                            gr.Markdown("**stage 2:**")
+
+                    with gr.Tab("Models"):
                         with gr.Row():
                             select_embedding_model = gr.Radio(
                                 embedding_options,
@@ -184,21 +211,16 @@ def launch():
                                 value=llm_options[0],
                                 interactive=False
                             )
-                        with gr.Row():
-                            workflow = gr.CheckboxGroup(
-                                choices=["keyword extraction", "entity recognition"],
-                                label="Workflow(Tasks)",
-                                interactive=True
-                            )
+
                     with gr.Tab("Advanced"):
                         with gr.Row():
                             temperature = gr.Slider(minimum=0, maximum=1, value=0.0, label="Temperature")
                             llm_top_k = gr.Slider(minimum=0, maximum=100, step=1, value=50, label="Top K")
                             max_tokens = gr.Slider(minimum=256, maximum=2048, step=256, value=512, label="Max Tokens")
 
-        btn_submit.click(
+        btn_submit_raw.click(
             raw_process_workflow,
-            inputs=[query_raw, workflow, select_embedding_model, select_llm_model, temperature, max_tokens],
+            inputs=[query_raw, tasks_stage_1, select_embedding_model, select_llm_model, temperature, max_tokens],
             outputs=[answer_raw, simple_dev_text],
             show_progress=latent_progress
         )
