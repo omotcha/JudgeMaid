@@ -151,3 +151,45 @@ class Tasks:
 
         task_result["classification"] = tmp
         task_dev["classification"] = "success"
+
+    @staticmethod
+    def prompt_yaml2md(
+            context: str,
+            llm_option: str,
+            temperature: float,
+            max_tokens: int,
+            task_result: dict,
+            task_dev: dict
+    ):
+        """
+
+        :param context:
+        :param llm_option:
+        :param temperature:
+        :param max_tokens:
+        :param task_result:
+        :param task_dev:
+        :return:
+        """
+        from prompt_templates.yaml2md import prompt_yaml2md_en
+
+        # in case yaml2md task has been performed
+        if "yaml2md" in task_dev.keys():
+            return
+        if llm_option == "openai":
+            llm = OpenAI(temperature=temperature, max_tokens=max_tokens)
+        else:
+            # todo: support more LLMs
+            task_result["yaml2md"] = ""
+            task_dev["yaml2md"] = "Currently only openai model supported."
+            return
+
+        prompt = PromptTemplate(
+                    template=prompt_yaml2md_en,
+                    input_variables=["context"]
+        )
+
+        chain = LLMChain(llm=llm, prompt=prompt)
+        task_result["yaml2md"] = chain.run({"context": context})
+        task_dev["yaml2md"] = "success"
+

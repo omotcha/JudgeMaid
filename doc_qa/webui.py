@@ -23,7 +23,8 @@ def img_classifier(img):
 
 
 def raw_process_workflow(
-        query: str,
+        query_raw: str,
+        query_yaml: str,
         task_extraction: list,
         task_classification: str or None,
         embedding_model: str or None,
@@ -39,7 +40,7 @@ def raw_process_workflow(
     if len(task_extraction) == 0:
         return "", "Error: Not a valid workflow."
 
-    if len(query) <= 1:
+    if len(query_raw) <= 1:
         return "", "Error: Not a valid query."
 
     if task_classification is None:
@@ -63,6 +64,8 @@ def raw_process_workflow(
 
     perform_classification = False if task_classification == "none" else True
 
+    perform_yaml2md = len(query_yaml) <= 1
+
     if perform_classification:
         if "keyword extraction" not in task_extraction or "entity recognition" not in task_extraction:
             return "", "Error: Stage 1 not completed."
@@ -72,7 +75,8 @@ def raw_process_workflow(
     all_tasks = {
         "entity recognition": "entity_recognition",
         "keyword extraction": "keyword_extraction",
-        "classification": "classification"
+        "classification": "classification",
+        "yaml2md": "prompt_yaml2md"
     }
 
     if allow_multithreading:
@@ -93,13 +97,21 @@ def raw_process_workflow(
             if k in task_extraction and hasattr(tasks, all_tasks[k]):
                 task = getattr(tasks, all_tasks[k])
                 threads.append(Thread(target=task, kwargs={
-                    "context": query,
+                    "context": query_raw,
                     "llm_option": llm,
                     "temperature": temperature,
                     "max_tokens": max_tokens,
                     "task_result": task_result,
                     "task_dev": task_dev
                 }))
+        threads.append(Thread(target=getattr(tasks, "prompt_yaml2md"), kwargs={
+            "context": query_yaml,
+            "llm_option": llm,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "task_result": task_result,
+            "task_dev": task_dev
+        }))
         for t in threads:
             t.start()
 
@@ -109,14 +121,21 @@ def raw_process_workflow(
         for k in all_tasks.keys():
             if k in task_extraction and hasattr(tasks, all_tasks[k]):
                 getattr(tasks, all_tasks[k])(
-                    context=query,
+                    context=query_raw,
                     llm_option=llm,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     task_result=task_result,
                     task_dev=task_dev
                 )
-
+        getattr(tasks, "prompt_yaml2md")(
+            context=query_yaml,
+            llm_option=llm,
+            temperature=0.6,
+            max_tokens=-1,
+            task_result=task_result,
+            task_dev=task_dev
+        )
     # load json as prev knowledge for next stage
     result = {}
     for task in task_extraction:
@@ -127,6 +146,8 @@ def raw_process_workflow(
                     result[k] = v
             else:
                 result[task] = entity
+
+    result["yaml2md"] = {"result": task_result["yaml2md"]}
 
     # classification
     if perform_classification:
@@ -164,6 +185,49 @@ def raw_process_workflow(
         result_text += json.dumps(result, ensure_ascii=False)
     dev_text = dev_text + "\n\n" + result_text
 
+    return result_text, dev_text
+
+
+def yaml_process_workflow(
+        query: str,
+        llm: str or None,
+        temperature: float or None,
+        max_tokens: int or None
+):
+    start = time.time()
+
+    # sanity checks start
+
+    if len(query) <= 1:
+        return "", "Error: Not a valid query."
+
+    if llm is None:
+        return "", "Error: No llm indicated."
+
+    if temperature is None:
+        return "", "Error: No temperature indicated."
+
+    if max_tokens is None:
+        return "", "Error: No max tokens indicated"
+
+    # sanity checks completed
+
+    tasks = Tasks()
+    task_result = {}
+    task_dev = {}
+
+    tasks.prompt_yaml2md(
+        context=query,
+        llm_option=llm,
+        temperature=0.6,
+        max_tokens=-1,
+        task_result=task_result,
+        task_dev=task_dev
+    )
+
+    result_text = task_result["yaml2md"]
+    time_count = time.time() - start
+    dev_text = f"Time count: {time_count}\n"
     return result_text, dev_text
 
 
@@ -282,13 +346,32 @@ def launch():
             raw_process_workflow,
             inputs=[
                 query_raw,
+                query_yaml,
                 task_extraction,
                 select_classification_method,
                 select_embedding_model,
                 select_llm_model,
-                temperature, max_tokens],
-            outputs=[answer_raw, simple_dev_text],
+                temperature,
+                max_tokens
+            ],
+            outputs=[
+                answer_raw,
+                simple_dev_text
+            ],
             show_progress=latent_progress
+        )
+        btn_submit_yaml.click(
+            yaml_process_workflow,
+            inputs=[
+                query_yaml,
+                select_llm_model,
+                temperature,
+                max_tokens
+            ],
+            outputs=[
+                answer_yaml,
+                simple_dev_text
+            ]
         )
 
     demo.launch(

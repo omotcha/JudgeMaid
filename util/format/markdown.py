@@ -1,6 +1,6 @@
 import json
 
-key_mappings = {
+key_mappings_1 = {
     "keywords": "关键词",
     "company name": "供方名称",
     "company description": "公司描述",
@@ -9,7 +9,8 @@ key_mappings = {
     "产品类型": "产品类型"
 }
 
-render_queue = ["product name", "company name", "行业", "产品类型", "company description", "keywords"]
+render_queue_1 = ["product name", "company name", "行业", "产品类型", "company description", "keywords"]
+
 
 tol = 50
 
@@ -50,7 +51,7 @@ class MarkdownUtil:
         self._target = f"""# {header}\n\n## 一、基本信息\n\n""" + self._target
         return self._target
 
-    def dict2md(self, dict_result: dict) -> str:
+    def part_1(self, dict_result: dict) -> str:
         """
 
         :param dict_result:
@@ -59,17 +60,49 @@ class MarkdownUtil:
         self.retarget(None)
         self.add_header(None)
 
-        for task in render_queue:
+        for task in render_queue_1:
             if task in dict_result.keys():
                 t = dict_result[task]
-                if type(t) is list:
-                    flattened = ", ".join(t)
-                else:
-                    flattened = t
-                if len(flattened) > tol:
-                    self._target += f"""**【{key_mappings[task]}】** \n\t {flattened}\n\n"""
-                else:
-                    self._target += f"""**【{key_mappings[task]}】** {flattened}\n\n"""
+            else:
+                t = ""
+            if type(t) is list:
+                flattened = ", ".join(t)
+            else:
+                flattened = t
+            if len(flattened) > tol:
+                self._target += f"""**【{key_mappings_1[task]}】** \n\t {flattened}\n\n"""
+            else:
+                self._target += f"""**【{key_mappings_1[task]}】** {flattened}\n\n"""
+        return self._target
+
+    def part_2(self) -> str:
+        """
+
+        :return:
+        """
+        self._target += f"""## 二、物理信息\n\n"""
+        return self._target
+
+    def part_3(self, dict_result: dict) -> str:
+        """
+
+        :param dict_result:
+        :return:
+        """
+        self._target += dict_result["yaml2md"]["result"]
+        self._target += "\n\n"
+        return self._target
+
+    def dict2md(self, dict_result: dict) -> str:
+        """
+
+        :param dict_result:
+        :return:
+        """
+        self.part_1(dict_result)
+        self.part_2()
+        self.part_3(dict_result)
+
         return self._target
 
 
