@@ -3,6 +3,10 @@
 embedding_options = ["openai", "text2vec-cn", "sentence-transformers"]
 embedding_option = "sentence-transformers"
 
+# the classification option, "prompt"/"embedding"/"fine-tuned"(not supported yet)
+classification_options = ["none", "prompt", "embedding"]
+classification_option = "prompt"
+
 # text splitter options
 chunk_size = 1000
 chunk_overlap = 0

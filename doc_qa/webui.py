@@ -6,6 +6,7 @@ from util.format.markdown import MarkdownUtil
 from multiprocessing import Manager
 from threading import Thread
 import time
+import json
 
 
 def img_classifier(img):
@@ -22,53 +23,81 @@ def img_classifier(img):
 
 def raw_process_workflow(
         query: str,
-        workflow: list,
-        embedding_model: str,
+        task_extraction: list,
+        task_classification: str or None,
+        embedding_model: str or None,
         llm: str or None,
         temperature: float or None,
         max_tokens: int or None
 ):
+
     start = time.time()
-    # sanity checks
-    if len(workflow) == 0:
+
+    # sanity checks start
+
+    if len(task_extraction) == 0:
         return "", "Error: Not a valid workflow."
+
     if len(query) <= 1:
         return "", "Error: Not a valid query."
+
+    if task_classification is None:
+        return "", "Error: Not a valid classification method."
+
+    # todo: support embedding-based classification
+    if task_classification == "embedding":
+        return "", "Error: Current classification method not supported."
+
+    # if task_classification == "embedding" and embedding_model is None:
+    #     return "", "Error: No embedding model indicated."
+
     if llm is None:
         return "", "Error: No llm indicated."
+
     if temperature is None:
         return "", "Error: No temperature indicated."
+
     if max_tokens is None:
         return "", "Error: No max tokens indicated"
 
+    perform_classification = False if task_classification == "none" else True
+
+    if perform_classification:
+        if "keyword extraction" not in task_extraction or "entity recognition" not in task_extraction:
+            return "", "Error: Stage 1 not completed."
+
+    # sanity checks completed
+
     all_tasks = {
         "entity recognition": "entity_recognition",
-        "keyword extraction": "keyword_extraction"}
+        "keyword extraction": "keyword_extraction",
+        "classification": "classification"
+    }
 
     if allow_multithreading:
         manager = Manager()
-        result = manager.dict()
-        dev = manager.dict()
+        task_result = manager.dict()
+        task_dev = manager.dict()
     else:
-        result = {}
-        dev = {}
+        task_result = {}
+        task_dev = {}
 
     threads = []
     tasks = Tasks()
 
-    # workflow
+    # extraction
 
     if allow_multithreading:
         for k in all_tasks.keys():
-            if k in workflow and hasattr(tasks, all_tasks[k]):
+            if k in task_extraction and hasattr(tasks, all_tasks[k]):
                 task = getattr(tasks, all_tasks[k])
                 threads.append(Thread(target=task, kwargs={
                     "context": query,
                     "llm_option": llm,
                     "temperature": temperature,
                     "max_tokens": -1,
-                    "result": result,
-                    "dev": dev
+                    "task_result": task_result,
+                    "task_dev": task_dev
                 }))
         for t in threads:
             t.start()
@@ -77,35 +106,58 @@ def raw_process_workflow(
             t.join()
     else:
         for k in all_tasks.keys():
-            if k in workflow and hasattr(tasks, all_tasks[k]):
+            if k in task_extraction and hasattr(tasks, all_tasks[k]):
                 getattr(tasks, all_tasks[k])(
                     context=query,
                     llm_option=llm,
                     temperature=temperature,
                     max_tokens=-1,
-                    result=result,
-                    dev=dev
+                    task_result=task_result,
+                    task_dev=task_dev
                 )
 
-    # init header
-    md_helper = MarkdownUtil(None)
-    if display_format == "markdown":
-        result_text = md_helper.add_header(None)
-    else:
-        result_text = ""
+    # load json as prev knowledge for next stage
+    result = {}
+    # for task in task_extraction:
+    #     if task_dev[task] == "success":
+    #         entity = json.loads(task_result[task])
+    #         result = result | entity
 
+    # classification
+    if perform_classification:
+        # previous knowledge construct
+        if "entity recognition" not in task_result.keys():
+            task_result["classification"] = ""
+            task_dev["classification"] = "Error: Stage 1 not completed."
+        else:
+            prev_entity = json.loads(task_result["entity recognition"])
+            tasks.prompt_classification(
+                prev_knowledge=prev_entity,
+                llm_option=llm,
+                temperature=temperature,
+                max_tokens=-1,
+                task_result=task_result,
+                task_dev=task_dev
+            )
+
+    #
+
+    # init header
+    # md_helper = MarkdownUtil(None)
+    result_text = ""
     time_count = time.time() - start
     dev_text = f"Time count: {time_count}\n"
+
+    if display_markdown:
+        pass
+
     for task in all_tasks:
-        if task in dev.keys() and dev[task] == "success":
-            result_text += result[task] + "\n"
-            dev_text += dev[task] + "\n"
+        if task in task_dev.keys() and task_dev[task] == "success":
+            dev_text += task_dev[task] + "\n"
+    for k, v in task_result.items():
+        result_text += f"key: {k}\nvalue: {v}\n"
     dev_text = dev_text + "\n\n" + result_text
     return result_text, dev_text
-
-
-def change_embedding_model(embedding_model):
-    return embedding_model
 
 
 def launch():
@@ -134,7 +186,7 @@ def launch():
                         ).style(container=False)
                         btn_submit_raw = gr.Button("Submit")
                     with gr.Column(scale=10):
-                        if display_format == "markdown":
+                        if display_markdown:
                             answer_raw = gr.Markdown(
                                 value=""
                             )
@@ -169,7 +221,7 @@ def launch():
                         ).style(container=False)
                         btn_submit_yaml = gr.Button("Submit")
                     with gr.Column(scale=10):
-                        if display_format == "markdown":
+                        if display_markdown:
                             answer_yaml = gr.Markdown(
                                 value=""
                             )
@@ -183,13 +235,20 @@ def launch():
                 with gr.Column(scale=6):
                     with gr.Tab("Workflow"):
                         with gr.Column():
-                            gr.Markdown("**stage 1:**")
-                            tasks_stage_1 = gr.CheckboxGroup(
+                            gr.Markdown("**stage 1: extraction**")
+                            task_extraction = gr.CheckboxGroup(
                                 choices=["keyword extraction", "entity recognition"],
                                 label="Tasks",
                                 interactive=True
                             )
-                            gr.Markdown("**stage 2:**")
+                            gr.Markdown("**stage 2: classification**")
+                            # Todo: currently only json task supports stage2
+                            select_classification_method = gr.Radio(
+                                classification_options,
+                                label="Supported Classification Methods",
+                                value=classification_options[0],
+                                interactive=False if display_markdown else True
+                            )
 
                     with gr.Tab("Models"):
                         with gr.Row():
@@ -198,11 +257,6 @@ def launch():
                                 label="Supported Embedding Models",
                                 value=embedding_options[2],
                                 interactive=True
-                            )
-                            select_embedding_model.change(
-                                fn=change_embedding_model,
-                                inputs=[select_embedding_model],
-                                outputs=[simple_dev_text]
                             )
                         with gr.Row():
                             select_llm_model = gr.Radio(
@@ -220,7 +274,13 @@ def launch():
 
         btn_submit_raw.click(
             raw_process_workflow,
-            inputs=[query_raw, tasks_stage_1, select_embedding_model, select_llm_model, temperature, max_tokens],
+            inputs=[
+                query_raw,
+                task_extraction,
+                select_classification_method,
+                select_embedding_model,
+                select_llm_model,
+                temperature, max_tokens],
             outputs=[answer_raw, simple_dev_text],
             show_progress=latent_progress
         )
