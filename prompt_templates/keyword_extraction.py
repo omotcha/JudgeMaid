@@ -4,6 +4,8 @@ prompt_keyword_extraction_zh = """
 
     公司及产品介绍:
     {context}
+    
+    回答：
     """
 
 prompt_keyword_extraction_en = """
@@ -12,4 +14,7 @@ prompt_keyword_extraction_en = """
 
     Introduction:
     {context}
+    
+    The key of JSON should be "keywords"
+    The answer only contains a JSON string. Please answer:
     """

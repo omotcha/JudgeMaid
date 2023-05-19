@@ -7,6 +7,7 @@ from multiprocessing import Manager
 from threading import Thread
 import time
 import json
+import re
 
 
 def img_classifier(img):
@@ -95,7 +96,7 @@ def raw_process_workflow(
                     "context": query,
                     "llm_option": llm,
                     "temperature": temperature,
-                    "max_tokens": -1,
+                    "max_tokens": max_tokens,
                     "task_result": task_result,
                     "task_dev": task_dev
                 }))
@@ -111,17 +112,21 @@ def raw_process_workflow(
                     context=query,
                     llm_option=llm,
                     temperature=temperature,
-                    max_tokens=-1,
+                    max_tokens=max_tokens,
                     task_result=task_result,
                     task_dev=task_dev
                 )
 
     # load json as prev knowledge for next stage
     result = {}
-    # for task in task_extraction:
-    #     if task_dev[task] == "success":
-    #         entity = json.loads(task_result[task])
-    #         result = result | entity
+    for task in task_extraction:
+        if task in task_dev.keys() and task_dev[task] == "success":
+            entity = json.loads(re.sub(r'\n\s+', '', task_result[task]))
+            if type(entity) is dict:
+                for k, v in entity.items():
+                    result[k] = v
+            else:
+                result[task] = entity
 
     # classification
     if perform_classification:
@@ -130,17 +135,19 @@ def raw_process_workflow(
             task_result["classification"] = ""
             task_dev["classification"] = "Error: Stage 1 not completed."
         else:
-            prev_entity = json.loads(task_result["entity recognition"])
             tasks.prompt_classification(
-                prev_knowledge=prev_entity,
+                prev_knowledge=result,
                 llm_option=llm,
                 temperature=temperature,
-                max_tokens=-1,
+                max_tokens=64,
                 task_result=task_result,
                 task_dev=task_dev
             )
 
-    #
+    # add classification result into json
+    if task_dev["classification"] == "success":
+        for k, v in dict(task_result["classification"]).items():
+            result[k] = v
 
     # init header
     # md_helper = MarkdownUtil(None)
@@ -154,8 +161,7 @@ def raw_process_workflow(
     for task in all_tasks:
         if task in task_dev.keys() and task_dev[task] == "success":
             dev_text += task_dev[task] + "\n"
-    for k, v in task_result.items():
-        result_text += f"key: {k}\nvalue: {v}\n"
+    result_text += json.dumps(result, ensure_ascii=False)
     dev_text = dev_text + "\n\n" + result_text
     return result_text, dev_text
 
@@ -270,7 +276,7 @@ def launch():
                         with gr.Row():
                             temperature = gr.Slider(minimum=0, maximum=1, value=0.0, label="Temperature")
                             llm_top_k = gr.Slider(minimum=0, maximum=100, step=1, value=50, label="Top K")
-                            max_tokens = gr.Slider(minimum=256, maximum=2048, step=256, value=512, label="Max Tokens")
+                            max_tokens = gr.Slider(minimum=256, maximum=2048, step=128, value=384, label="Max Tokens")
 
         btn_submit_raw.click(
             raw_process_workflow,

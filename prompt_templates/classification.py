@@ -14,12 +14,12 @@ classification_tasks = {
         4. 数据集时效性相对差，数据服务时效性相对高
         5. 数据集相对昂贵，数据服务相对便宜
         """,
-        "top_k": 1,
+        "top_k": None,
         "classes": ["数据集", "数据服务"]
     }
 }
 
-prompt_classification_zh = """
+prompt_multiple_classification_zh = """
     下面文字是某公司及其产品的简要描述，请判断该产品属于什么类型，最多可以属于{top_k}类:
     {intro}
     
@@ -34,4 +34,27 @@ prompt_classification_zh = """
     
     所有类型:
     {classes}
+    
+    请回答:
+    
+    """
+
+prompt_binary_classification_zh = """
+    下面文字是某公司及其产品的简要描述，请判断该产品属于什么类型(只能选择一种类型):
+    {intro}
+    
+    公司名称: 
+    {company_name}
+    
+    公司描述:
+    {company_description}
+    
+    产品名称:
+    {product_name}
+    
+    所有类型:
+    {classes}
+    
+    请回答:
+    
     """

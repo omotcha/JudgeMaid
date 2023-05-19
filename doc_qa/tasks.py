@@ -1,7 +1,7 @@
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from config.doc_qa_config import zh_prompts
+# from config.doc_qa_config import zh_prompts
 
 
 class Tasks:
@@ -35,7 +35,8 @@ class Tasks:
             return
 
         prompt = PromptTemplate(
-            template=prompt_entity_recognition_zh if zh_prompts else prompt_entity_recognition_en,
+            # template=prompt_entity_recognition_zh if zh_prompts else prompt_entity_recognition_en,
+            template=prompt_entity_recognition_en,
             input_variables=["context"]
         )
         chain = LLMChain(llm=llm, prompt=prompt)
@@ -72,7 +73,8 @@ class Tasks:
             return
 
         prompt = PromptTemplate(
-            template=prompt_keyword_extraction_zh if zh_prompts else prompt_keyword_extraction_en,
+            # template=prompt_keyword_extraction_zh if zh_prompts else prompt_keyword_extraction_en,
+            template=prompt_keyword_extraction_en,
             input_variables=["context"]
         )
         chain = LLMChain(llm=llm, prompt=prompt)
@@ -97,7 +99,9 @@ class Tasks:
         :param task_dev:
         :return:
         """
-        from prompt_templates.classification import prompt_classification_zh, classification_tasks
+        from prompt_templates.classification import prompt_multiple_classification_zh, prompt_binary_classification_zh, classification_tasks
+
+        # in case classification task has been performed
         if "classification" in task_dev.keys():
             return
         if llm_option == "openai":
@@ -108,26 +112,42 @@ class Tasks:
             task_dev["classification"] = "Currently only openai model supported."
             return
 
-        prompt = PromptTemplate(
-            template=prompt_classification_zh,
-            input_variables=["top_k", "intro", "company_name", "company_description", "product_name", "classes"]
-        )
         tmp = {}
         for k, v in classification_tasks.items():
             top_k = v["top_k"]
+            if top_k is None:
+                prompt = PromptTemplate(
+                    template=prompt_binary_classification_zh,
+                    input_variables=["intro", "company_name", "company_description", "product_name", "classes"]
+                )
+            else:
+                prompt = PromptTemplate(
+                    template=prompt_multiple_classification_zh,
+                    input_variables=["top_k", "intro", "company_name", "company_description", "product_name", "classes"]
+                )
             intro = "" if v["intro"] is None else v["intro"]
-            company_name = prev_knowledge["company_name"]
-            company_description = prev_knowledge["company_description"]
-            product_name = prev_knowledge["product_name"]
+            company_name = prev_knowledge["company name"]
+            company_description = prev_knowledge["company description"]
+            product_name = prev_knowledge["product name"]
             classes = v["classes"]
             chain = LLMChain(llm=llm, prompt=prompt)
-            tmp[k] = chain.run({
-                "top_k": top_k,
-                "intro": intro,
-                "company_name": company_name,
-                "company_description": company_description,
-                "product_name": product_name[0] if product_name is list else product_name,
-                "classes": classes
-            })
+            if top_k is None:
+                tmp[k] = chain.run({
+                    "intro": intro,
+                    "company_name": company_name,
+                    "company_description": company_description,
+                    "product_name": product_name[0] if product_name is list else product_name,
+                    "classes": classes
+                })
+            else:
+                tmp[k] = chain.run({
+                    "top_k": top_k,
+                    "intro": intro,
+                    "company_name": company_name,
+                    "company_description": company_description,
+                    "product_name": product_name[0] if product_name is list else product_name,
+                    "classes": classes
+                })
+
         task_result["classification"] = tmp
         task_dev["classification"] = "success"
