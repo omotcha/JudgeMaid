@@ -35,7 +35,7 @@ block_css = """
 latent_progress = True
 
 # display the result in json/markdown
-display_markdown = False
+display_markdown = True
 
 # allow multithreading
 allow_multithreading = False

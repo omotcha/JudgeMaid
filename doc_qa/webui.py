@@ -149,20 +149,21 @@ def raw_process_workflow(
         for k, v in dict(task_result["classification"]).items():
             result[k] = v
 
-    # init header
-    # md_helper = MarkdownUtil(None)
     result_text = ""
     time_count = time.time() - start
     dev_text = f"Time count: {time_count}\n"
 
-    if display_markdown:
-        pass
-
     for task in all_tasks:
         if task in task_dev.keys() and task_dev[task] == "success":
             dev_text += task_dev[task] + "\n"
-    result_text += json.dumps(result, ensure_ascii=False)
+
+    if display_markdown:
+        md_util = MarkdownUtil(None)
+        result_text = md_util.dict2md(result)
+    else:
+        result_text += json.dumps(result, ensure_ascii=False)
     dev_text = dev_text + "\n\n" + result_text
+
     return result_text, dev_text
 
 
@@ -248,12 +249,11 @@ def launch():
                                 interactive=True
                             )
                             gr.Markdown("**stage 2: classification**")
-                            # Todo: currently only json task supports stage2
                             select_classification_method = gr.Radio(
                                 classification_options,
                                 label="Supported Classification Methods",
                                 value=classification_options[0],
-                                interactive=False if display_markdown else True
+                                interactive=True
                             )
 
                     with gr.Tab("Models"):
