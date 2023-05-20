@@ -132,7 +132,7 @@ def raw_process_workflow(
                     context=query_yaml if k == "api doc generation" else query_raw,
                     llm_option=llm,
                     temperature=0.6 if k == "api doc generation" else temperature,
-                    max_tokens=-1 if k == "api doc generation" else max_tokens,
+                    max_tokens=-1 if k in ["api doc generation", "entity recognition"] else max_tokens,
                     task_result=task_result,
                     task_dev=task_dev
                 )
@@ -194,57 +194,6 @@ def raw_process_workflow(
     return result_text, dev_text
 
 
-def yaml_process_workflow(
-        query: str,
-        llm: str or None,
-        temperature: float or None,
-        max_tokens: int or None
-):
-    """
-    yaml -> api doc(markdown)
-    :param query:
-    :param llm:
-    :param temperature:
-    :param max_tokens:
-    :return:
-    """
-    start = time.time()
-
-    # sanity checks start
-
-    if len(query) <= 1:
-        return "", "Error: Not a valid query."
-
-    if llm is None:
-        return "", "Error: No llm indicated."
-
-    if temperature is None:
-        return "", "Error: No temperature indicated."
-
-    if max_tokens is None:
-        return "", "Error: No max tokens indicated"
-
-    # sanity checks completed
-
-    tasks = Tasks()
-    task_result = {}
-    task_dev = {}
-
-    tasks.prompt_api_doc_generation(
-        context=query,
-        llm_option=llm,
-        temperature=0.6,
-        max_tokens=-1,
-        task_result=task_result,
-        task_dev=task_dev
-    )
-
-    result_text = task_result["api doc generation"]
-    time_count = time.time() - start
-    dev_text = f"Time count: {time_count}\n"
-    return result_text, dev_text
-
-
 def launch():
     """
     launch a gradio user interface
@@ -267,16 +216,17 @@ def launch():
             with gr.Row():
                 with gr.Column(scale=6):
                     query_raw = gr.TextArea(
-                        label="公司和产品描述",
-                        placeholder="输入公司和产品描述",
+                        label="1. 公司和产品描述",
+                        placeholder="请输入公司和产品描述",
                         value=input_raw,
                         max_lines=13
                     ).style(container=False)
+                    gr.Markdown("---")
                     query_yaml = gr.TextArea(
-                        label="API描述",
-                        placeholder="输入API描述",
+                        label="2. API接口描述",
+                        placeholder="请输入API接口描述",
                         value=input_yaml,
-                        max_lines=7
+                        max_lines=8
                     ).style(container=False)
                     btn_submit_raw = gr.Button("生成")
                 with gr.Column(scale=10):
@@ -351,7 +301,7 @@ def launch():
                             with gr.Row():
                                 temperature = gr.Slider(minimum=0, maximum=1, value=0.0, label="Temperature")
                                 llm_top_k = gr.Slider(minimum=0, maximum=100, step=1, value=50, label="Top K")
-                                max_tokens = gr.Slider(minimum=256, maximum=2048, step=128, value=384,
+                                max_tokens = gr.Slider(minimum=256, maximum=2048, step=64, value=448,
                                                        label="Max Tokens")
 
         btn_submit_raw.click(

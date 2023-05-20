@@ -3,7 +3,7 @@ Following is part of an API doc. Please analyze the data fields of HTTP requests
 
 
 Requirements:
-1. The title of the documentation is "三、内容说明"
+1. The documentation has no title.
 2. As for HTTP request, generate a subtitle called "输入字段" and a table containing fields as follows：
     "序号" representing the index of table, counting from 1 like 1,2,3,...
     "参数名称" representing the attribute name in English, 

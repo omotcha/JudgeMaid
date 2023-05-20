@@ -1,6 +1,6 @@
 # classification tasks: task name + classes
 classification_tasks = {
-    "行业": {
+    "应用板块": {
         "intro": None,
         "top_k": 3,
         "classes": ["金融", "贸易", "治理", "交运", "通信", "消费", "医疗", "工业", "能源", "文旅"]
@@ -26,11 +26,13 @@ prompt_multiple_classification_zh = """
     公司名称: 
     {company_name}
     
-    公司描述:
-    {company_description}
-    
     产品名称:
     {product_name}
+    
+    产品描述:
+    {product_description}
+    
+    
     
     所有类型:
     {classes}
@@ -46,11 +48,13 @@ prompt_binary_classification_zh = """
     公司名称: 
     {company_name}
     
-    公司描述:
-    {company_description}
-    
     产品名称:
     {product_name}
+    
+    产品描述:
+    {product_description}
+    
+    
     
     所有类型:
     {classes}
