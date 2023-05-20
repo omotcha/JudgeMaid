@@ -67,7 +67,7 @@ def raw_process_workflow(
     # arbitrary threshold of whether to perform api doc generation or not
     perform_api_doc_generation = len(query_yaml) >= 10
 
-    if not perform_api_doc_generation:
+    if not perform_api_doc_generation and "api doc generation" in task_extraction:
         task_extraction.remove("api doc generation")
 
     if perform_classification:
@@ -189,6 +189,14 @@ def yaml_process_workflow(
         temperature: float or None,
         max_tokens: int or None
 ):
+    """
+    yaml -> api doc(markdown)
+    :param query:
+    :param llm:
+    :param temperature:
+    :param max_tokens:
+    :return:
+    """
     start = time.time()
 
     # sanity checks start
@@ -332,10 +340,13 @@ def launch():
                             )
 
                     with gr.Tab("Advanced"):
-                        with gr.Row():
-                            temperature = gr.Slider(minimum=0, maximum=1, value=0.0, label="Temperature")
-                            llm_top_k = gr.Slider(minimum=0, maximum=100, step=1, value=50, label="Top K")
-                            max_tokens = gr.Slider(minimum=256, maximum=2048, step=128, value=384, label="Max Tokens")
+                        with gr.Column():
+                            gr.Markdown("**LLM settings**")
+                            with gr.Row():
+                                temperature = gr.Slider(minimum=0, maximum=1, value=0.0, label="Temperature")
+                                llm_top_k = gr.Slider(minimum=0, maximum=100, step=1, value=50, label="Top K")
+                                max_tokens = gr.Slider(minimum=256, maximum=2048, step=128, value=384,
+                                                       label="Max Tokens")
 
         btn_submit_raw.click(
             raw_process_workflow,
