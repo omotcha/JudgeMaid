@@ -17,9 +17,9 @@ prompt_entity_recognition_en = """
     
     Requirements:
     1. JSON layer should be exactly one, do not use nested JSON.
-    2. Detailed information includes 3 parts: company name, product name and product description. The corresponding keys are ["company name", "product name", "product description"]
+    2. Detailed information includes 4 parts: company name, company description, product name and product description. The corresponding keys are ["company name", "company description", "product name", "product description"]
         - If there are multiple products, you just need to generate the first one.
-        - Product description should be concise, with no more than 100 words.
+        - Company description and product description should be concise, with no more than 100 words.
     3. If you cannot decide the answer, please just say "Not enough information has been provided". Do not make up anything that cannot be found in the introduction.
     4. The answer only contains a JSON string. Please answer in Chinese.
     

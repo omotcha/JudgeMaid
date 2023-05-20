@@ -118,15 +118,16 @@ class Tasks:
             if top_k is None:
                 prompt = PromptTemplate(
                     template=prompt_binary_classification_zh,
-                    input_variables=["intro", "company_name", "product_name", "product_description", "classes"]
+                    input_variables=["intro", "company_name", "company_description", "product_name", "product_description", "classes"]
                 )
             else:
                 prompt = PromptTemplate(
                     template=prompt_multiple_classification_zh,
-                    input_variables=["top_k", "intro", "company_name", "product_name", "product_description", "classes"]
+                    input_variables=["top_k", "intro", "company_name", "company_description", "product_name", "product_description", "classes"]
                 )
             intro = "" if v["intro"] is None else v["intro"]
             company_name = prev_knowledge["company name"]
+            company_description = prev_knowledge["company description"]
             product_name = prev_knowledge["product name"]
             product_description = prev_knowledge["product description"]
             classes = v["classes"]
@@ -135,7 +136,8 @@ class Tasks:
                 tmp[k] = chain.run({
                     "intro": intro,
                     "company_name": company_name,
-                    "product_name": product_name[0] if product_name is list else product_name,
+                    "company_description": product_description,
+                    "product_name": product_name,
                     "product_description": product_description,
                     "classes": classes
                 })
@@ -144,7 +146,8 @@ class Tasks:
                     "top_k": top_k,
                     "intro": intro,
                     "company_name": company_name,
-                    "product_name": product_name[0] if product_name is list else product_name,
+                    "company_description": product_description,
+                    "product_name": product_name,
                     "product_description": product_description,
                     "classes": classes
                 })

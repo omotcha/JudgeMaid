@@ -115,7 +115,7 @@ def raw_process_workflow(
                     "context": query_yaml if k == "api doc generation" else query_raw,
                     "llm_option": llm,
                     "temperature": 0.6 if k == "api doc generation" else temperature,
-                    "max_tokens": -1 if k == "api doc generation" else max_tokens,
+                    "max_tokens": -1 if k in ["api doc generation", "entity recognition"] else max_tokens,
                     "task_result": task_result,
                     "task_dev": task_dev
                 }))
@@ -301,7 +301,7 @@ def launch():
                             with gr.Row():
                                 temperature = gr.Slider(minimum=0, maximum=1, value=0.0, label="Temperature")
                                 llm_top_k = gr.Slider(minimum=0, maximum=100, step=1, value=50, label="Top K")
-                                max_tokens = gr.Slider(minimum=256, maximum=2048, step=64, value=448,
+                                max_tokens = gr.Slider(minimum=512, maximum=2048, step=64, value=512,
                                                        label="Max Tokens")
 
         btn_submit_raw.click(

@@ -26,13 +26,14 @@ prompt_multiple_classification_zh = """
     公司名称: 
     {company_name}
     
+    公司描述:
+    {company_description}
+    
     产品名称:
     {product_name}
     
     产品描述:
     {product_description}
-    
-    
     
     所有类型:
     {classes}
@@ -48,13 +49,14 @@ prompt_binary_classification_zh = """
     公司名称: 
     {company_name}
     
+    公司描述:
+    {company_description}
+    
     产品名称:
     {product_name}
     
     产品描述:
     {product_description}
-    
-    
     
     所有类型:
     {classes}
