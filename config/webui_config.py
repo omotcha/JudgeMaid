@@ -14,9 +14,9 @@ in_browser = False
 
 # change the webui title as you wish
 webui_title = f"""
-# DocQA WebUI
+# 产品说明书生成
 
-| version {_version} ({_type}) | 
+| 版本 {_version} ({_type}) | 
 """
 
 # change the block css as you wish
@@ -36,6 +36,9 @@ latent_progress = True
 
 # display the result in json/markdown
 display_markdown = True
+
+# display dev text
+display_dev_text = True
 
 # allow multithreading
 allow_multithreading = True

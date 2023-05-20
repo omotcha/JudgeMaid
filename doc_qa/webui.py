@@ -1,7 +1,15 @@
+import os
+import sys
+
+# uncomment line below if "module not found" happens
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import gradio as gr
 from doc_qa.tasks import Tasks
 from config.webui_config import *
 from config.doc_qa_config import *
+from config.function_mapping import webui_mapping
+from example.docqa_inputs import *
 from util.format.markdown import MarkdownUtil
 from multiprocessing import Manager
 from threading import Thread
@@ -32,19 +40,22 @@ def raw_process_workflow(
         temperature: float or None,
         max_tokens: int or None
 ):
-
     start = time.time()
 
-    # sanity checks start
+    # sanity checks and naming mapping
 
     if len(task_extraction) == 0:
         return "", "Error: Not a valid workflow."
+
+    task_extraction = [webui_mapping[task] for task in task_extraction]
 
     if len(query_raw) <= 1:
         return "", "Error: Not a valid query."
 
     if task_classification is None:
         return "", "Error: Not a valid classification method."
+
+    task_classification = webui_mapping[task_classification]
 
     # todo: support embedding-based classification
     if task_classification == "embedding":
@@ -242,106 +253,101 @@ def launch():
     with gr.Blocks(css=block_css) as demo:
         gr.Markdown(webui_title)
 
-        acrd_qa = gr.Accordion("QA")
-        acrd_settings = gr.Accordion("Settings")
+        acrd_qa = gr.Accordion("输入材料")
+        acrd_settings = gr.Accordion("设置")
 
         simple_dev_text = gr.TextArea(
-            label="dev output",
+            label="测试窗口",
             interactive=False
         )
 
+        simple_dev_text.visible = display_dev_text
+
         with acrd_qa:
-            with gr.Tab("raw"):
-                with gr.Row():
-                    with gr.Column(scale=6):
-                        query_raw = gr.TextArea(
-                            label="query",
-                            placeholder="Raw text supported, try markdown first:"
-                        ).style(container=False)
-                        btn_submit_raw = gr.Button("Submit")
-                    with gr.Column(scale=10):
-                        if display_markdown:
-                            answer_raw = gr.Markdown(
-                                value=""
-                            )
-                        else:
-                            answer_raw = gr.TextArea(
-                                label="answer",
-                                interactive=False
-                            )
-            with gr.Tab("pdf"):
-                with gr.Row():
-                    with gr.Column(scale=8):
-                        query_pdf = gr.Textbox(
-                            label="one-line query",
-                            placeholder="One-line query supported, press enter to submit:"
-                        ).style(container=False)
-                    with gr.Column(scale=8):
-                        answer_pdf = gr.TextArea(
-                            label="answer",
+            with gr.Row():
+                with gr.Column(scale=6):
+                    query_raw = gr.TextArea(
+                        label="公司和产品描述",
+                        placeholder="输入公司和产品描述",
+                        value=input_raw,
+                        max_lines=13
+                    ).style(container=False)
+                    query_yaml = gr.TextArea(
+                        label="API描述",
+                        placeholder="输入API描述",
+                        value=input_yaml,
+                        max_lines=7
+                    ).style(container=False)
+                    btn_submit_raw = gr.Button("生成")
+                with gr.Column(scale=10):
+                    if display_markdown:
+                        answer_raw = gr.Markdown(
+                            value=""
+                        )
+                    else:
+                        answer_raw = gr.TextArea(
+                            label="JSON",
                             interactive=False
                         )
-                query_pdf.submit(
-                    img_classifier,
-                    [query_pdf],
-                    [answer_pdf]
-                )
-            with gr.Tab("yaml"):
-                with gr.Row():
-                    with gr.Column(scale=6):
-                        query_yaml = gr.TextArea(
-                            label="yaml query",
-                            placeholder="arbitrary yaml supported, try standard openapi first:"
-                        ).style(container=False)
-                        btn_submit_yaml = gr.Button("Submit")
-                    with gr.Column(scale=10):
-                        if display_markdown:
-                            answer_yaml = gr.Markdown(
-                                value=""
-                            )
-                        else:
-                            answer_yaml = gr.TextArea(
-                                label="answer",
-                                interactive=False
-                            )
+            # with gr.Tab("公司产品文本描述"):
+            #     pass
+            # with gr.Tab("pdf"):
+            #     with gr.Row():
+            #         with gr.Column(scale=8):
+            #             query_pdf = gr.Textbox(
+            #                 label="one-line query",
+            #                 placeholder="One-line query supported, press enter to submit:"
+            #             ).style(container=False)
+            #         with gr.Column(scale=8):
+            #             answer_pdf = gr.TextArea(
+            #                 label="answer",
+            #                 interactive=False
+            #             )
+            #     query_pdf.submit(
+            #         img_classifier,
+            #         [query_pdf],
+            #         [answer_pdf]
+            #     )
+
         with acrd_settings:
             with gr.Row():
                 with gr.Column(scale=6):
-                    with gr.Tab("Workflow"):
+                    with gr.Tab("工作流程"):
                         with gr.Column():
-                            gr.Markdown("**stage 1: extraction**")
+                            gr.Markdown("**第一步: 关键信息提取**")
                             task_extraction = gr.CheckboxGroup(
-                                choices=["keyword extraction", "entity recognition", "api doc generation"],
-                                label="Tasks",
+                                choices=["关键词提取", "主体识别", "API文档生成"],
+                                value=["关键词提取", "主体识别", "API文档生成"],
+                                label="任务",
                                 interactive=True
                             )
-                            gr.Markdown("**stage 2: classification**")
+                            gr.Markdown("**第二步: 分类**")
                             select_classification_method = gr.Radio(
                                 classification_options,
-                                label="Supported Classification Methods",
-                                value=classification_options[0],
+                                label="分类方法",
+                                value=classification_options[1],
                                 interactive=True
                             )
 
-                    with gr.Tab("Models"):
+                    with gr.Tab("模型"):
                         with gr.Row():
                             select_embedding_model = gr.Radio(
                                 embedding_options,
-                                label="Supported Embedding Models",
+                                label="Embedding模型",
                                 value=embedding_options[2],
-                                interactive=True
+                                interactive=False
                             )
                         with gr.Row():
                             select_llm_model = gr.Radio(
                                 llm_options,
-                                label="Supported LLMs",
+                                label="大语言模型",
                                 value=llm_options[0],
                                 interactive=False
                             )
 
-                    with gr.Tab("Advanced"):
+                    with gr.Tab("高级"):
                         with gr.Column():
-                            gr.Markdown("**LLM settings**")
+                            gr.Markdown("**大语言模型设置**")
                             with gr.Row():
                                 temperature = gr.Slider(minimum=0, maximum=1, value=0.0, label="Temperature")
                                 llm_top_k = gr.Slider(minimum=0, maximum=100, step=1, value=50, label="Top K")
@@ -365,19 +371,6 @@ def launch():
                 simple_dev_text
             ],
             show_progress=latent_progress
-        )
-        btn_submit_yaml.click(
-            yaml_process_workflow,
-            inputs=[
-                query_yaml,
-                select_llm_model,
-                temperature,
-                max_tokens
-            ],
-            outputs=[
-                answer_yaml,
-                simple_dev_text
-            ]
         )
 
     demo.launch(

@@ -4,8 +4,8 @@ embedding_options = ["openai", "text2vec-cn", "sentence-transformers"]
 embedding_option = "sentence-transformers"
 
 # the classification option, "prompt"/"embedding"/"fine-tuned"(not supported yet)
-classification_options = ["none", "prompt", "embedding"]
-classification_option = "prompt"
+classification_options = ["不执行分类", "基于提示分类"]
+classification_option = "基于提示分类"
 
 # text splitter options
 chunk_size = 1000
