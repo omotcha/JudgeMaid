@@ -38,4 +38,4 @@ latent_progress = True
 display_markdown = True
 
 # allow multithreading
-allow_multithreading = False
+allow_multithreading = True

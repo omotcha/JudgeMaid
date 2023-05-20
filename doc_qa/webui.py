@@ -64,7 +64,11 @@ def raw_process_workflow(
 
     perform_classification = False if task_classification == "none" else True
 
-    perform_yaml2md = len(query_yaml) <= 1
+    # arbitrary threshold of whether to perform api doc generation or not
+    perform_api_doc_generation = len(query_yaml) >= 10
+
+    if not perform_api_doc_generation:
+        task_extraction.remove("api doc generation")
 
     if perform_classification:
         if "keyword extraction" not in task_extraction or "entity recognition" not in task_extraction:
@@ -76,7 +80,7 @@ def raw_process_workflow(
         "entity recognition": "entity_recognition",
         "keyword extraction": "keyword_extraction",
         "classification": "classification",
-        "yaml2md": "prompt_yaml2md"
+        "api doc generation": "prompt_api_doc_generation"
     }
 
     if allow_multithreading:
@@ -97,21 +101,14 @@ def raw_process_workflow(
             if k in task_extraction and hasattr(tasks, all_tasks[k]):
                 task = getattr(tasks, all_tasks[k])
                 threads.append(Thread(target=task, kwargs={
-                    "context": query_raw,
+                    "context": query_yaml if k == "api doc generation" else query_raw,
                     "llm_option": llm,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
+                    "temperature": 0.6 if k == "api doc generation" else temperature,
+                    "max_tokens": -1 if k == "api doc generation" else max_tokens,
                     "task_result": task_result,
                     "task_dev": task_dev
                 }))
-        threads.append(Thread(target=getattr(tasks, "prompt_yaml2md"), kwargs={
-            "context": query_yaml,
-            "llm_option": llm,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "task_result": task_result,
-            "task_dev": task_dev
-        }))
+
         for t in threads:
             t.start()
 
@@ -121,33 +118,31 @@ def raw_process_workflow(
         for k in all_tasks.keys():
             if k in task_extraction and hasattr(tasks, all_tasks[k]):
                 getattr(tasks, all_tasks[k])(
-                    context=query_raw,
+                    context=query_yaml if k == "api doc generation" else query_raw,
                     llm_option=llm,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
+                    temperature=0.6 if k == "api doc generation" else temperature,
+                    max_tokens=-1 if k == "api doc generation" else max_tokens,
                     task_result=task_result,
                     task_dev=task_dev
                 )
-        getattr(tasks, "prompt_yaml2md")(
-            context=query_yaml,
-            llm_option=llm,
-            temperature=0.6,
-            max_tokens=-1,
-            task_result=task_result,
-            task_dev=task_dev
-        )
+
     # load json as prev knowledge for next stage
     result = {}
     for task in task_extraction:
         if task in task_dev.keys() and task_dev[task] == "success":
-            entity = json.loads(re.sub(r'\n\s+', '', task_result[task]))
-            if type(entity) is dict:
-                for k, v in entity.items():
-                    result[k] = v
+            if task == "api doc generation":
+                result[task] = task_result[task]
             else:
-                result[task] = entity
-
-    result["yaml2md"] = {"result": task_result["yaml2md"]}
+                trimmed = re.sub(r'\n\s+', '', task_result[task])
+                try:
+                    entity = json.loads(trimmed)
+                    if type(entity) is dict:
+                        for k, v in entity.items():
+                            result[k] = v
+                    else:
+                        result[task] = entity
+                except json.decoder.JSONDecodeError:
+                    result[task] = trimmed
 
     # classification
     if perform_classification:
@@ -166,7 +161,7 @@ def raw_process_workflow(
             )
 
     # add classification result into json
-    if task_dev["classification"] == "success":
+    if "classification" in task_dev.keys() and task_dev["classification"] == "success":
         for k, v in dict(task_result["classification"]).items():
             result[k] = v
 
@@ -216,7 +211,7 @@ def yaml_process_workflow(
     task_result = {}
     task_dev = {}
 
-    tasks.prompt_yaml2md(
+    tasks.prompt_api_doc_generation(
         context=query,
         llm_option=llm,
         temperature=0.6,
@@ -225,7 +220,7 @@ def yaml_process_workflow(
         task_dev=task_dev
     )
 
-    result_text = task_result["yaml2md"]
+    result_text = task_result["api doc generation"]
     time_count = time.time() - start
     dev_text = f"Time count: {time_count}\n"
     return result_text, dev_text
@@ -253,7 +248,7 @@ def launch():
                     with gr.Column(scale=6):
                         query_raw = gr.TextArea(
                             label="query",
-                            placeholder="Raw text supported, try format first:"
+                            placeholder="Raw text supported, try markdown first:"
                         ).style(container=False)
                         btn_submit_raw = gr.Button("Submit")
                     with gr.Column(scale=10):
@@ -288,7 +283,7 @@ def launch():
                     with gr.Column(scale=6):
                         query_yaml = gr.TextArea(
                             label="yaml query",
-                            placeholder="arbitrary yaml supported, try openapi first:"
+                            placeholder="arbitrary yaml supported, try standard openapi first:"
                         ).style(container=False)
                         btn_submit_yaml = gr.Button("Submit")
                     with gr.Column(scale=10):
@@ -308,7 +303,7 @@ def launch():
                         with gr.Column():
                             gr.Markdown("**stage 1: extraction**")
                             task_extraction = gr.CheckboxGroup(
-                                choices=["keyword extraction", "entity recognition"],
+                                choices=["keyword extraction", "entity recognition", "api doc generation"],
                                 label="Tasks",
                                 interactive=True
                             )

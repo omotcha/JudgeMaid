@@ -153,7 +153,7 @@ class Tasks:
         task_dev["classification"] = "success"
 
     @staticmethod
-    def prompt_yaml2md(
+    def prompt_api_doc_generation(
             context: str,
             llm_option: str,
             temperature: float,
@@ -173,15 +173,15 @@ class Tasks:
         """
         from prompt_templates.yaml2md import prompt_yaml2md_en
 
-        # in case yaml2md task has been performed
-        if "yaml2md" in task_dev.keys():
+        # in case api doc generation task has been performed
+        if "api doc generation" in task_dev.keys():
             return
         if llm_option == "openai":
             llm = OpenAI(temperature=temperature, max_tokens=max_tokens)
         else:
             # todo: support more LLMs
-            task_result["yaml2md"] = ""
-            task_dev["yaml2md"] = "Currently only openai model supported."
+            task_result["api doc generation"] = ""
+            task_dev["api doc generation"] = "Currently only openai model supported."
             return
 
         prompt = PromptTemplate(
@@ -190,6 +190,6 @@ class Tasks:
         )
 
         chain = LLMChain(llm=llm, prompt=prompt)
-        task_result["yaml2md"] = chain.run({"context": context})
-        task_dev["yaml2md"] = "success"
+        task_result["api doc generation"] = {"result": chain.run({"context": context})}
+        task_dev["api doc generation"] = "success"
 

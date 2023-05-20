@@ -89,8 +89,9 @@ class MarkdownUtil:
         :param dict_result:
         :return:
         """
-        self._target += dict_result["yaml2md"]["result"]
-        self._target += "\n\n"
+        if "api doc generation" in dict_result.keys():
+            self._target += dict_result["api doc generation"]["result"]
+            self._target += "\n\n"
         return self._target
 
     def dict2md(self, dict_result: dict) -> str:
